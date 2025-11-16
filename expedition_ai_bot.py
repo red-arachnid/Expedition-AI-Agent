@@ -2,6 +2,7 @@ import logging
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters)
 from telegram_bot_calendar import (DetailedTelegramCalendar, LSTEP)
+from geoapify import (GetCoordinates)
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 START_DATE, END_DATE, LOCATION, OCCASION, BUDGET = range(5)
 TELEGRAM_API = "8506070110:AAGn9euLifnSTurA1gXz-6t_fqeTdzmm7bk"
 
-# region STATES
+# region INPUT STATES
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     calendar, step = DetailedTelegramCalendar().build()
 
@@ -97,6 +98,15 @@ async def get_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     location_text = update.message.text
     context.user_data['location'] = location_text
+
+    lon, lat = GetCoordinates(location_text)
+    if not lon and not lat:
+        #The coordinates for the following input was not found
+        await update.message.reply_text(
+            'The location you entered was not found.\nPlease Enter a suitable location for your trip.',
+            parse_mode='HTML'
+        )
+        return LOCATION
 
     # Setting keyboard for next input (occasion)
     reply_keyboard = [['Adventure', 'Relaxation', 'Business', 'Family Trip', 'Cultural']] 
