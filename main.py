@@ -1,17 +1,20 @@
 import logging
-from datetime import datetime
 import google.generativeai as genai
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters)
 from telegram_bot_calendar import (DetailedTelegramCalendar, LSTEP)
-from geoapify import (GetCoordinates, SearchPOIs, FindHotel)
+
+TELEGRAM_API = "8506070110:AAGn9euLifnSTurA1gXz-6t_fqeTdzmm7bk"
+GEMINI_API_KEY = "AIzaSyCq75zBUINpYYcnICJwjglLFAhhfuzFZa8"
+
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # States for different inputs
 START_DATE, END_DATE, LOCATION, OCCASION, BUDGET = range(5)
-TELEGRAM_API = "8506070110:AAGn9euLifnSTurA1gXz-6t_fqeTdzmm7bk"
 
 # region INPUT STATES
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -102,17 +105,6 @@ async def get_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     location_text = update.message.text
     context.user_data['location'] = location_text
 
-    lon, lat = GetCoordinates(location_text)
-    if not lon and not lat:
-        #The coordinates for the following input was not found
-        await update.message.reply_text(
-            'The location you entered was not found.\nPlease Enter a suitable location for your trip.',
-            parse_mode='HTML'
-        )
-        return LOCATION
-
-    context.user_data['lon'] = lon
-    context.user_data['lat'] = lat
     # Setting keyboard for next input (occasion)
     reply_keyboard = [['Adventure', 'Relaxation', 'Business', 'Family Trip', 'Cultural']] 
 
@@ -189,90 +181,55 @@ async def get_budget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 # region DATA PROCESS
 
 async def process_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    lon = context.user_data['lon']
-    lat = context.user_data['lat']
-    occasion = context.user_data['occasion']
-
-    # ----SEARCHING POINT OF INTEREST----
-    if lon and lat:
-        pois = SearchPOIs(lon=lon, lat=lat, user_category=occasion)
-        limit = 5 #set this depending on the trip duration (max 10)
-        if pois:
-            message_text = "<b>Here are some points of interest I found for you:</b>\n\n"
-            for i, feature in enumerate(pois):
-                properties = feature.get("properties", {})
-                place_name = properties.get("name", None)
-                place_address = properties.get("formatted", None)
-
-                if place_name and place_address:
-                    message_text += f"<b>{i+1}. {place_name}</b>\n"
-                    message_text += f"   <i>Address:</i> {place_address}\n\n"
-                if i > limit:
-                    break
-            
-            await update.message.reply_text(
-                text=message_text,
-                parse_mode='HTML'
-            )
-        else:
-            await update.message.reply_text(
-                "Sorry, I couldn't find any point of interest matching your location."
-            )
-    else:
-        await update.message.reply_text(
-            text='SAD',
-            parse_mode='HTML'
-        )
-
-    # ----SEACHING HOTELS----
-    total_budget = context.user_data['budget']
-    check_in_date = context.user_data['start_date']
-    check_out_date = context.user_data['end_date']
-
-    try:
-        start_dt = datetime.strptime(check_in_date, '%Y-%m-%d')
-        end_dt = datetime.strptime(check_out_date, '%Y-%m-%d')
-        nights = (end_dt-start_dt).days
-        if nights <= 0:
-            nights = 1
-    except ValueError:
-        await update.message.reply_text("Error calculating trip duration.")
-        return ConversationHandler.END
-    
-    hotel_budget = total_budget * 0.40
-    per_night_budget = hotel_budget / nights
+    user_data = context.user_data
+    location = user_data.get('location')
+    occasion = user_data.get('occasion')
+    start_date = user_data.get('start_date')
+    end_date = user_data.get('end_date')
+    budget = user_data.get('budget')
 
     await update.message.reply_text(
-        f"Searching for hotels under <b>${per_night_budget:.2f}/night</b>...",
+        (
+            f"<b>Analyzing trip to {location}...</b>\n"
+            f"Crafting a {occasion} itinerary for ${budget}..."
+        ),
         parse_mode='HTML'
     )
 
-    hotel_offers = FindHotel(
-        lon=lon,
-        lat=lat,
-        check_in_date=check_in_date,
-        check_out_date=check_out_date,
-        price_per_night=per_night_budget
+    prompt = (
+        f"Act as an expert travel agent named 'Expedition AI'. "
+        f"Plan a trip to {location} from {start_date} to {end_date}. "
+        f"The trip vibe is '{occasion}' and the total budget is ${budget} USD. "
+        f"\n\nPlease provide:\n"
+        f"1. A selection of 3 specific hotels that fit the budget (approx 40% of total).\n"
+        f"2. A list of top 5 points of interest (POIs) relevant to the '{occasion}' theme.\n"
+        f"3. A brief day-by-day itinerary outline.\n"
+        f"\nFormat the response nicely with bolding and emojis. Do not mention that you are an AI, just be helpful."
+        f"You don't have to introduce yourself or generate any pictures or other things, you just have to write it in text to be forwarded as telegram message"
+        f"\nThe generated text should be in under the message limit of telegram which is 4000 character long"
     )
 
-    if hotel_offers:
-        hotel_message = "<b>Here are the top hotel deals I found within your budget:</b>\n\n"
+    try:
+        response = model.generate_content(prompt)
+        ai_reply = response.text
 
-        for offer in hotel_offers[:3]:
-            hotel_name = offer.get('hotel', {}).get('name', 'Hotel Name Not Found')
-            price = offer.get('offers', [{}])[0].get('price', {}).get('total', '??')
-            
-            hotel_message += f"<b>Hotel Name: {hotel_name}</b>\n"
-            hotel_message += f"   <i>Total Price:</i> ${price} USD\n\n"    
-        
-        await update.message.reply_text(hotel_message, parse_mode='HTML')
-    else:
-        await update.message.reply_text(
-            "Sorry, I couldn't find any hotels that match your budget and location."
-        )
+        await send_long_message(update, ai_reply)
+
+    except Exception as e:
+        logger.error(f"AI Generation Error: {e}")
+        await update.message.reply_text("Sorry, I had trouble connecting to my AI brain. Please try again!")
 
     return ConversationHandler.END
 
+async def send_long_message(update: Update, text: str):
+    max_length = 4000 
+    
+    for i in range(0, len(text), max_length):
+        chunk = text[i:i + max_length]
+        await update.message.reply_text(
+            text=chunk,
+            parse_mode=None 
+        )
 # endregion
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
