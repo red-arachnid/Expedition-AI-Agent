@@ -1,8 +1,8 @@
-import logging
-import google.generativeai as genai
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, InlineKeyboardButton, InlineKeyboardMarkup)
+import logging, os, google.generativeai as genai
+from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update)
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters)
 from telegram_bot_calendar import (DetailedTelegramCalendar, LSTEP)
+from pdf_converter import CreatePDF
 
 TELEGRAM_API = "8506070110:AAGn9euLifnSTurA1gXz-6t_fqeTdzmm7bk"
 GEMINI_API_KEY = "AIzaSyCq75zBUINpYYcnICJwjglLFAhhfuzFZa8"
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 # States for different inputs
 START_DATE, END_DATE, LOCATION, OCCASION, BUDGET = range(5)
 
-# region INPUT STATES
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     calendar, step = DetailedTelegramCalendar().build()
 
@@ -176,9 +175,6 @@ async def get_budget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await process_data(update, context)
     return ConversationHandler.END
 
-# endregion
-
-# region DATA PROCESS
 
 async def process_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = context.user_data
@@ -205,32 +201,27 @@ async def process_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         f"2. A list of top 5 points of interest (POIs) relevant to the '{occasion}' theme.\n"
         f"3. A brief day-by-day itinerary outline.\n"
         f"\nFormat the response nicely with bolding and emojis. Do not mention that you are an AI, just be helpful."
-        f"You don't have to introduce yourself or generate any pictures or other things, you just have to write it in text to be forwarded as telegram message"
-        f"\nThe generated text should be in under the message limit of telegram which is 4000 character long"
+        f"You don't have to introduce yourself or generate any pictures or other things."
+        f"\nThe generated text is going to be displayed on a pdf file so make sure it looks good and well formatted and don't use emojies"
     )
 
     try:
         response = model.generate_content(prompt)
         ai_reply = response.text
 
-        await send_long_message(update, ai_reply)
+        pdf_file = CreatePDF(context.user_data, ai_reply)
+        await context.bot.send_document(
+            chat_id=update.message.chat_id,
+            document=open(pdf_file, 'rb')
+        )
+        os.remove(pdf_file)
 
     except Exception as e:
         logger.error(f"AI Generation Error: {e}")
         await update.message.reply_text("Sorry, I had trouble connecting to my AI brain. Please try again!")
 
-    return ConversationHandler.END
 
-async def send_long_message(update: Update, text: str):
-    max_length = 4000 
-    
-    for i in range(0, len(text), max_length):
-        chunk = text[i:i + max_length]
-        await update.message.reply_text(
-            text=chunk,
-            parse_mode=None 
-        )
-# endregion
+    return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text('Bye! Hope to talk to you again soon.', reply_markup=ReplyKeyboardRemove())
