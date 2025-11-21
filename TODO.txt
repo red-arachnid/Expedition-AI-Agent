@@ -1,4 +1,4 @@
--> Fix the code
+
 -> Add images of location on top of the location Pin
 -> Make pin changeable through mouse click
 -> Make the format of PDF Better

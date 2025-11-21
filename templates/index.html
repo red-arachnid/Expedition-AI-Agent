@@ -142,6 +142,33 @@
         const map = L.map('map').setView([48.8566, 2.3522], 13); //Default coords for Paris
         let currentMarker = L.marker([48.8566, 2.3522]).addTo(map);
 
+        // PIN MOVE ON CLICK LOGIC
+        map.on('click', async function(e){
+            const {lat, lng} = e.latlng;
+            currentMarker.setLatLng([lat, lng]);
+            document.getElementById('selected-location').innerText = "Locating...";
+
+            try{
+                const response = await fetch(`/get_location_name?lat=${lat}&lon=${lng}`);
+                const data = await response.json();
+
+                if (data && data.display_name){
+                    const address = data.address;
+                    let locationName = address.city || address.town || address.village || address.hamlet || data.display_name.split(',')[0];
+
+                    if (address.country){
+                        locationName += `, ${address.country}`;
+                    }
+                    document.getElementById('selected-location').innerText = locationName;
+                } else {
+                    document.getElementById('selected-location').innerText = "Unknown Location";
+                }
+            } catch (e) {
+                console.error("Reverse Geocoding error:", e);
+                document.getElementById('selected-location').innerText = "Error locating";
+            }
+        });
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',

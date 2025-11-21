@@ -1,4 +1,5 @@
 import logging, os, google.generativeai as genai
+import requests
 from dotenv import load_dotenv
 from flask import (Flask, render_template, request, send_file, jsonify)
 from pdf_converter import CreatePDF
@@ -59,6 +60,39 @@ def download_file():
     # In production, secure this path!
     path = os.path.join("/tmp" if os.name != 'nt' else os.getcwd(), filename)
     return send_file(path, as_attachment=True)
+
+@app.route('/get_location_name')
+def get_location_name():
+    try:
+        lat = request.args.get('lat')
+        lon = request.args.get('lon')
+
+        geoapify_api = os.getenv("GEOAPIFY_API_KEY")
+        url = f"https://api.geoapify.com/v1/geocode/reverse?lat={lat}&lon={lon}&apiKey={geoapify_api}"
+
+        response = requests.get(url, timeout=10) #Timeout prevents hanging
+
+        if response.status_code == 200:
+            data = response.json()
+            if data['features']:
+                properties = data['features'][0]['properties']
+                result = {
+                    "display_name": properties.get('formatted'),
+                    "address": {
+                        "city": properties.get('city', properties.get('county', '')),
+                        "town": properties.get('town', ''),
+                        "village": properties.get('village', ''),
+                        "country": properties.get('country', '')
+                    }
+                }
+                return jsonify(result)
+        else:
+            logger.error(f"Nominatim API Error: {response.text}")
+            return jsonify({"error": "Location not found"}), 404
+        
+    except Exception as e:
+        logger.error(f"Geocoding error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
