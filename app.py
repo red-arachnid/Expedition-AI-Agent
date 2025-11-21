@@ -76,8 +76,45 @@ def get_location_name():
             data = response.json()
             if data['features']:
                 properties = data['features'][0]['properties']
+
+                search_query = (
+                    properties.get('city') or 
+                    properties.get('town') or 
+                    properties.get('village') or 
+                    properties.get('hamlet') or 
+                    properties.get('state') or 
+                    properties.get('country')
+                )
+                image_url = None
+                if search_query:
+                    try:
+                        # Using wiki to get a popular image of the given location
+                        wiki_url = "https://en.wikipedia.org/w/api.php"
+                        params = {
+                            "action": "query",
+                            "format": "json",
+                            "titles": search_query,
+                            "prop": "pageimages",
+                            "pithumbsize": 400, # Width in pixels
+                            "redirects": 1
+                        }
+                        headers = {
+                            "User-Agent": "ExpeditionAI/1.0 (contact@example.com)" 
+                        }
+                        wiki_response = requests.get(wiki_url, params=params,headers=headers ,timeout=10)
+
+                        if wiki_response.status_code == 200 and 'application/json' in wiki_response.headers.get('Content-Type', ''):
+                            pages = wiki_response.json().get('query', {}).get('pages', {})
+                            for i in pages:
+                                if 'thumbnail' in pages[i]:
+                                    image_url = pages[i]['thumbnail']['source']
+                                    break
+                    except Exception as e:
+                        logger.error(f"Wikipedia Image Fetch Error: {e}")
+
                 result = {
                     "display_name": properties.get('formatted'),
+                    "image": image_url,
                     "address": {
                         "city": properties.get('city', properties.get('county', '')),
                         "town": properties.get('town', ''),

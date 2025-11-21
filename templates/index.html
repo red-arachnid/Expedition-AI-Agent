@@ -32,6 +32,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Popup Style */
+        .custom-map-popup .leaflet-popup-content-wrapper {
+            padding: 0 !important;
+            overflow: hidden;
+            border-radius: 0.75rem;
+        }
+        .custom-map-popup .leaflet-popup-content {
+            margin: 0 !important;
+            width: 280px !important;
+        }
+        .custom-map-popup .leaflet-popup-tip {
+            background: white;
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex bg-gray-100">
@@ -146,6 +160,8 @@
         map.on('click', async function(e){
             const {lat, lng} = e.latlng;
             currentMarker.setLatLng([lat, lng]);
+            currentMarker.closePopup();
+            currentMarker.unbindPopup();
             document.getElementById('selected-location').innerText = "Locating...";
 
             try{
@@ -156,12 +172,42 @@
                     const address = data.address;
                     let locationName = address.city || address.town || address.village || address.hamlet || data.display_name.split(',')[0];
 
+                    let fullName = locationName;
                     if (address.country){
-                        locationName += `, ${address.country}`;
+                        fullName += `, ${address.country}`;
                     }
-                    document.getElementById('selected-location').innerText = locationName;
+                    document.getElementById('selected-location').innerText = fullName;
+
+                    if (data.image){
+                        const popupContent = `
+                            <div class="font-sans">
+                                <div class="relative h-40">
+                                    <img src="${data.image}" class="w-full h-full object-cover" alt="${locationName}">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                                    <div class="absolute bottom-3 left-4 text-white text-left">
+                                        <h3 class="font-bold text-xl leading-none shadow-black drop-shadow-md">${locationName}</h3>
+                                        <span class="text-xs opacity-90 uppercase tracking-wider font-medium">${address.country || 'Destination'}</span>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-4">
+                                    <button onclick="const d = document.getElementById('startDate'); d.showPicker ? d.showPicker() : d.focus()" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm">
+                                        <span>📅</span> Plan Trip Here
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        currentMarker.bindPopup(popupContent, {
+                            className: 'custom-map-popup',
+                            closeButton: false,
+                            minWidth: 280,
+                            maxWidth: 280
+                        }).openPopup();
+                    }
+
                 } else {
                     document.getElementById('selected-location').innerText = "Unknown Location";
+                    currentMarker.bindPopup(`<b>${fullName}</b>`).openPopup();
                 }
             } catch (e) {
                 console.error("Reverse Geocoding error:", e);
