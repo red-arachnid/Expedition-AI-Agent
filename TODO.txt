@@ -1,0 +1,6 @@
+-> Fix the code
+-> Add images of location on top of the location Pin
+-> Make pin changeable through mouse click
+-> Make the format of PDF Better
+-> Add a small cute AI blob chatbot that gives tips, and feedbacks time to time
+-> Make the schedule file seperate and show the hotel listing and location listing on the site

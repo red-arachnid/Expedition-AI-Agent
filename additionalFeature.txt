@@ -1,6 +1,0 @@
-1. Photos of destination
-2. Output budget in ruppee
-3. Better pfd format
-
--> Extras
-1. Create my own UI
