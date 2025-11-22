@@ -1,3 +1,2 @@
--> Make the format of PDF Better
+-> Better Error Handling  and a seperate UI Box for error
 -> Add a small cute AI blob chatbot that gives tips, and feedbacks time to time
--> Make the schedule file seperate and show the hotel listing and location listing on the site

@@ -1,4 +1,5 @@
-import logging, os, google.generativeai as genai
+import logging, os, json
+import google.generativeai as genai
 import requests
 from dotenv import load_dotenv
 from flask import (Flask, render_template, request, send_file, jsonify)
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 try:
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"response_mime_type": "application/json"})
 except Exception as e:
     logger.log(f"Failed to configure GEMINI: {e}")
 
@@ -31,22 +32,25 @@ def generate_itinerary():
             f"Act as an expert travel agent. Plan a trip to {data['location']} "
             f"from {data['startDate']} to {data['endDate']}. "
             f"Vibe: {data['occasion']}. Budget: ${data['budget']}. "
-            f"\nProvide: 3 specific hotels (40% of budget), 5 top POIs, and a day-by-day itinerary. "
-            f"Keep it professional and concise. No markdown formatting."
+            f"\nReturn a valid JSON object with exactly these three keys:"
+            f"\n- 'hotels': A list of 3 objects, each with 'name', 'price' (approx), and 'description'."
+            f"\n- 'pois': A list of 5 objects, each with 'name' and 'description' (Must-visit places)."
+            f"\n- 'itinerary': A single string containing a detailed day-by-day schedule formatted clearly with bullet points and newlines (do not use markdown bolding like **)."
         )
 
         # 2. Call Gemini
         response = model.generate_content(prompt)
-        ai_text = response.text
+        ai_data = json.loads(response.text)
 
         # 3. Generate PDF
-        pdf_path = CreatePDF(data, ai_text)
+        pdf_path = CreatePDF(data, ai_data.get('itinerary', 'No itinerary generated.'))
 
         # 4. Return the PDF path (in a real app, you'd upload to cloud storage)
         # For now, we send the text to preview and the download link
         return jsonify({
             "success": True,
-            "preview": ai_text,
+            "hotels": ai_data.get('hotels', []),
+            "pois": ai_data.get('pois', []),
             "pdf_url": f"/download?file={os.path.basename(pdf_path)}"
         })
 
