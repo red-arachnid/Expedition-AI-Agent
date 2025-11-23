@@ -52,6 +52,96 @@
         .custom-map-popup .leaflet-popup-tip {
             background: white;
         }
+
+        /* XP BOT STYLE */
+        #xp-bot-container {
+            position: absolute;
+            bottom: 50px;
+            right: 24px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+
+        #xp-speech-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border-bottom-right-radius: 2px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            max-width: 220px;
+            opacity: 0;
+            transform: translateY(10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: auto;
+            border: 2px solid #e5e7eb;
+        }
+
+        .xp-tv{
+            width: 80px;
+            height: 65px;
+            background: #2563eb;
+            border-radius: 12px;
+            border: 3px solid #1e40af;
+            position: relative;
+            box-shadow: 0 8px 0 #1e3a8a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: tvBounce 3s ease-in-out infinite;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .xp-tv-screen {
+            width: 55px;
+            height: 40px;
+            background: #dbeafe;
+            border-radius: 8px;
+            border: 2px solid #1e3a8a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #1e3a8a;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .xp-antenna {
+            position: absolute;
+            top: -15px;
+            width: 3px;
+            height: 18px;
+            background: #1e40af;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        .xp-antenna.left { left: 20px; transform: rotate(-25deg); }
+        .xp-antenna.right { right: 20px; transform: rotate(25deg); }
+
+        .xp-tv:hover .xp-antenna.left { transform: rotate(-45deg); }
+        .xp-tv:hover .xp-antenna.right { transform: rotate(45deg); }
+        .xp-tv:hover { transform: translateY(-2px); }
+
+        @keyframes tvBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        #xp-speech-bubble.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        @keyframes floatBubble {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex bg-gray-100">
@@ -60,13 +150,26 @@
     <div class="flex-1 relative">
         <div id="map" class="h-full w-full z-0"></div>
 
+        <!-- XP BOT DIV -->
+        <div id="xp-bot-container">
+            <div id="xp-speech-bubble">
+                <p id="xp-text" class="text-xs text-gray-700 font-semibold leading-relaxed">...</p>
+            </div>
+            
+            <div class="xp-tv" onclick="botClick()">
+                <div class="xp-antenna left"></div>
+                <div class="xp-antenna right"></div>
+                <div class="xp-tv-screen">XP</div>
+            </div>
+        </div>
+
         <div id="map-dimmer" 
-            class="absolute inset-0 bg-black/60 z-[999] opacity-0 pointer-events-none transition-opacity duration-500" 
+            class="absolute inset-0 bg-black/60 z-[950] opacity-0 pointer-events-none transition-opacity duration-500" 
             onmouseenter="toggleFocusMode(false)">
         </div>
 
         <!-- MAP SEARCH BAR -->
-        <div class="absolute top-3 left-6 z-[1000] w-80">
+        <div class="absolute top-3 left-6 z-[900] w-80">
             <div class="bg-white p-2 rounded-lg shadow-xl flex items-center">
                 <svg class="w-5 h-5 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 <input type="text" id="map-search" placeholder="Search map location..." class="w-full p-2 outline-none text-gray-700" onkeydown="if(event.key === 'Enter') searchMap()">
@@ -216,6 +319,8 @@
                     }
                     document.getElementById('selected-location').innerText = fullName;
 
+                    xpSpeak(`Oh, ${locationName}! Nice choice. Let's get planning.`);
+
                     if (data.image){
                         const popupContent = `
                             <div class="font-sans">
@@ -303,6 +408,7 @@
             document.getElementById('loading-loc').innerText = location;
 
             startProgress();
+            startLoadingChatter();
 
             try{
                 const response = await fetch('/generate', {
@@ -316,6 +422,7 @@
 
                 if (data.success){
                     //setTimeout for adding delays for the loading bar to show properly
+                    stopLoadingChatter(true);
                     setTimeout(() => {
                         document.getElementById('hotels-container').innerHTML = data.hotels.map(hotel => `
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition">
@@ -345,6 +452,7 @@
                     throw new Error(data.error);
                 }
             } catch (e) {
+                stopLoadingChatter(false);
                 alert("Error generating itinerary: " + e.message);
                 resetForm();
             }
@@ -413,7 +521,97 @@
             progressBar.style.width = '100%';
             progressText.innerText = '100%';
         }
+    </script>
+    <script>
+        const xpBubble = document.getElementById('xp-speech-bubble');
+        const xpText = document.getElementById('xp-text');
+        const xpTv = document.querySelector('.xp-tv');
+        const occasionSelect = document.getElementById('occasion');
+        let botTimeout;
+        let randomChatterInterval;
 
+        let chatter = {
+            clicks: ["Hello?"],
+            loading: ["Thinking..."],
+            success: ["Done!"],
+            error: ["Error!"],
+            occasions: {}
+        } //Default data if could not retreive json
+
+        async function loadChatter(){
+            try {
+                const response = await fetch('static/xp_bot_chatter.json');
+                if (response.ok){
+                    chatter = await response.json();
+                    xpSpeak("I am online! Click the map to start.", 3000);
+                }
+                else {
+                    console.warn("Could not load XP chatter data.");
+                }
+            } catch (e){
+                console.error("Failed to load chatter:", e);
+            }
+        }
+        loadChatter();
+
+        function xpSpeak(message, duration = 4000){
+            clearTimeout(botTimeout);
+            xpText.innerText = message;
+            xpBubble.classList.add('active');
+
+            xpTv.style.animation = 'none';
+            xpTv.offsetHeight;
+            xpTv.style.animation = 'tvBounce 0.5s ease-in-out';
+
+            botTimeout = setTimeout(() => {
+                xpBubble.classList.remove('active');
+                xpTv.style.animation = 'tvBounce 3s ease-in-out infinite';
+            }, duration);
+        }
+
+        occasionSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const key = Object.keys(chatter.occasions).find(k => val.includes(k));
+
+            if (key && chatter.occasions[key]){
+                const msgs = chatter.occasions[key];
+                const msg = msgs[Math.floor(Math.random() * msgs.length)];
+                xpSpeak(msg);
+            }
+        });
+
+        function startLoadingChatter() {
+            let msgs = chatter.loading;
+            if (!msgs || msgs.length === 0) msgs = ["Thinking..."];
+
+            let msg = msgs[Math.floor(Math.random() * msgs.length)];
+            xpSpeak(msg);
+
+            loadingInterval = setInterval(() => {
+                let msg = msgs[Math.floor(Math.random() * msgs.length)];
+                xpSpeak(msg);
+            }, 3000);
+        }
+
+        function stopLoadingChatter(isSuccess) {
+            clearInterval(loadingInterval);
+            if(isSuccess) {
+                const msgs = chatter.success;
+                const msg = msgs[Math.floor(Math.random() * msgs.length)];
+                xpSpeak(msg, 8000); 
+            } else {
+                const msgs = chatter.error;
+                const msg = msgs[Math.floor(Math.random() * msgs.length)];
+                xpSpeak(msg);
+            }
+        }
+
+        function botClick(){
+            const msg = chatter.clicks[Math.floor(Math.random() * chatter.clicks.length)];
+            xpSpeak(msg);
+        }
+
+        setTimeout(() => xpSpeak("I am awake! Click the map to start."), 1000);
     </script>
 </body>
 </html>

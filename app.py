@@ -1,9 +1,9 @@
-import logging, os, json
+import logging, os, json, glob, io
 import google.generativeai as genai
 import requests
 from dotenv import load_dotenv
-from flask import (Flask, render_template, request, send_file, jsonify)
-from pdf_converter import CreatePDF
+from flask import (Flask, render_template, request, send_file, jsonify, after_this_request)
+from pdf_handler import CreatePDF, CleanCache
 
 load_dotenv()
 app = Flask(__name__)
@@ -24,6 +24,8 @@ def home():
 @app.route('/generate', methods=['POST'])
 def generate_itinerary():
     try:
+        CleanCache(logger=logger)
+
         data = request.json
         logger.info(f"Received request for: {data['location']}")
 
@@ -61,9 +63,32 @@ def generate_itinerary():
 @app.route('/download')
 def download_file():
     filename = request.args.get('file')
-    # In production, secure this path!
-    path = os.path.join("/tmp" if os.name != 'nt' else os.getcwd(), filename)
-    return send_file(path, as_attachment=True)
+
+    cache_dir = os.path.join(os.getcwd(), '_pdfcache')
+    path = os.path.join(cache_dir, filename)
+
+    if not os.path.exists(path):
+        return "File not found or expired.", 404
+
+    try:
+        return_data = io.BytesIO()
+        with open(path, 'rb') as fo:
+            return_data.write(fo.read())
+
+        return_data.seek(0)
+        os.remove(path)
+        logger.info(f"Deleted cached file successfully: {path}")
+
+        return send_file(
+            return_data,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+    except:
+        logger.error(f"Error processing download: {e}")
+        return "Error processing file", 500
+
 
 @app.route('/get_location_name')
 def get_location_name():

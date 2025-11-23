@@ -1,5 +1,5 @@
 from fpdf import FPDF
-import os
+import os, glob
 
 def CreatePDF(data, text):
     class PDF(FPDF):
@@ -52,7 +52,19 @@ def CreatePDF(data, text):
     pdf.multi_cell(0, 7, safe_text(clean_text))
 
     # ---- OUTPUT ----
-    filename = f"{data['location']}_Trip_Plan.pdf"
-    filepath = os.path.join("/tmp" if os.name != 'nt' else os.getcwd(), filename)
+    save_dir = os.path.join(os.getcwd(), '_pdfcache')
+    os.makedirs(save_dir, exist_ok=True)
+    filename = f"{data['location']}_Trip_Plan.pdf".replace(" ", "_").replace("/", "-")
+    filepath = os.path.join(save_dir, filename)
     pdf.output(filepath)
     return filepath
+
+def CleanCache(logger):
+    cache_dir = os.path.join(os.getcwd(), '_pdfcache')
+    if os.path.exists(cache_dir):
+        files = glob.glob(os.path.join(cache_dir, "*"))
+        for f in files:
+            try:
+                os.remove(f)
+            except Exception as e:
+                logger.error(f"Error deleting old file {f}: {e}")
