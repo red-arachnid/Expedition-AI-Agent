@@ -1,3 +1,2 @@
 -> Better Error Handling  and a seperate UI Box for error
--> Add a small cute AI blob chatbot that gives tips, and feedbacks time to time
 -> Seperate the code files into parts for better readability
