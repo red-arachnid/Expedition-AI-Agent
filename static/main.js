@@ -1,21 +1,36 @@
 // MAP INITIALIZE
 const map = L.map('map').setView([48.8566, 2.3522], 13); //Default coords for Paris
 let currentMarker = L.marker([48.8566, 2.3522]).addTo(map);
+let isValidLocation = true;
 
 // PIN MOVE ON CLICK LOGIC
-map.on('click', async function(e){
+async function selectLocation(lat, lng){
     toggleFocusMode(false);
-    const {lat, lng} = e.latlng;
+
     currentMarker.setLatLng([lat, lng]);
     currentMarker.closePopup();
     currentMarker.unbindPopup();
     document.getElementById('selected-location').innerText = "Locating...";
+    document.getElementById('location-box').classList.remove('location-error');
 
     try{
         const response = await fetch(`/get_location_name?lat=${lat}&lon=${lng}`);
         const data = await response.json();
 
         if (data && data.display_name){
+            if (data.is_ocean) {
+                isValidLocation = false;
+                document.getElementById('location-box').classList.add('location-error');
+                document.getElementById('selected-location').innerText = data.display_name || "Ocean / Wilderness";
+                xpOcean();
+
+                currentMarker.bindPopup(`<b>⚠️ ${data.display_name}</b><br>Not a valid destination.`).openPopup();
+                return;
+            }
+
+            isValidLocation = true;
+            document.getElementById('location-box').classList.remove('location-error');
+
             const address = data.address;
             let locationName = address.city || address.town || address.village || address.hamlet || data.display_name.split(',')[0];
 
@@ -55,13 +70,20 @@ map.on('click', async function(e){
             }
 
         } else {
-            document.getElementById('selected-location').innerText = "Unknown Location";
-            currentMarker.bindPopup(`<b>${fullName}</b>`).openPopup();
+            throw new Error("Location not identified");
         }
     } catch (e) {
-        console.error("Reverse Geocoding error:", e);
-        document.getElementById('selected-location').innerText = "Error locating";
+        isValidLocation = false;
+        document.getElementById('selected-location').innerText = "Unknown Location";
+        document.getElementById('location-box').classList.add('location-error');
+        xpLocationError();
+        currentMarker.bindPopup(`<b>Unknown Location</b>`).openPopup();
     }
+}
+
+map.on('click', function(e){
+    const {lat, lng} = e.latlng;
+    selectLocation(lat, lng);
 });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -80,13 +102,9 @@ async function searchMap(){
         const data = await response.json();
 
         if (data && data.length > 0){
-            const {lat , lon , display_name} = data[0];
-            const name = display_name.split(',')[0];
-
+            const {lat , lon} = data[0];
+            await selectLocation(lat, lon);
             map.setView([lat, lon], 13);
-            currentMarker.setLatLng([lat, lon]);
-
-            document.getElementById('selected-location').innerText = name;
         }
     } catch (e) {
         console.log("GEOCODING ERROR : ", e);
@@ -97,6 +115,13 @@ async function searchMap(){
 // Send to backend
 async function generateItinerary(){
     const location = document.getElementById('selected-location').innerText;
+
+    if (!isValidLocation || location === "Unknown Location" || location === "Locating..."){
+        xpLocationError();
+        document.getElementById('location-box').classList.add('location-error');
+        return;
+    }
+
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     const occasion = document.getElementById('occasion').value;

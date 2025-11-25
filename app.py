@@ -106,16 +106,26 @@ def get_location_name():
             if data['features']:
                 properties = data['features'][0]['properties']
 
+                country = properties.get('country')
+                city = properties.get('city') or properties.get('town') or properties.get('village')
+                name = properties.get('name', '')
+
+                is_ocean = False
+                if not country:
+                    is_ocean = True
+                elif "Ocean" in name or "Sea" in name:
+                    if not city:
+                        is_ocean = True
+
                 search_query = (
-                    properties.get('city') or 
-                    properties.get('town') or 
-                    properties.get('village') or 
-                    properties.get('hamlet') or 
-                    properties.get('state') or 
-                    properties.get('country')
+                    city or
+                    properties.get('hamlet') or
+                    properties.get('state') or
+                    country
                 )
                 image_url = None
-                if search_query:
+
+                if search_query and not is_ocean:
                     try:
                         # Using wiki to get a popular image of the given location
                         wiki_url = "https://en.wikipedia.org/w/api.php"
@@ -127,9 +137,7 @@ def get_location_name():
                             "pithumbsize": 400, # Width in pixels
                             "redirects": 1
                         }
-                        headers = {
-                            "User-Agent": "ExpeditionAI/1.0 (contact@example.com)" 
-                        }
+                        headers = { "User-Agent": "ExpeditionAI/1.0 (contact@example.com)" }
                         wiki_response = requests.get(wiki_url, params=params,headers=headers ,timeout=10)
 
                         if wiki_response.status_code == 200 and 'application/json' in wiki_response.headers.get('Content-Type', ''):
@@ -144,6 +152,7 @@ def get_location_name():
                 result = {
                     "display_name": properties.get('formatted'),
                     "image": image_url,
+                    "is_ocean": is_ocean,
                     "address": {
                         "city": properties.get('city', properties.get('county', '')),
                         "town": properties.get('town', ''),

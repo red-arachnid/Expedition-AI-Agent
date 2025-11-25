@@ -95,6 +95,24 @@
     "A wild bug appeared! It blocked your request.",
     "The satellite refused to answer my call."
   ],
+  "locating_error": [
+    "I can't plan a trip to the void. Pick a real place.",
+    "Are we going to Narnia? My GPS doesn't show that.",
+    "404: Location not found. Try Earth.",
+    "That's in the middle of nowhere. Literally.",
+    "I can't find that. Did you invent it?",
+    "Please select a destination that actually exists."
+  ],
+  "ocean_error": [
+    "I can't swim. Pick land.",
+    "Unless you are a mermaid, that's a bad idea.",
+    "Destination: The middle of nowhere. Try again.",
+    "I don't plan trips for fish.",
+    "That is 100% water. 0% Hotel.",
+    "My circuits are not waterproof.",
+    "Do you have a submarine? No? Then click land.",
+    "Error: Too much moisture detected."
+  ],
   "occasions": {
     "Adventure": [
       "Pack a helmet. Seriously.",

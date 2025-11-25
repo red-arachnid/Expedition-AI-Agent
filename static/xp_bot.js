@@ -28,9 +28,19 @@ async function loadChatter(){
 }
 loadChatter();
 
-function xpSpeak(message, duration = 4000){
+function xpSpeak(message, duration = 4000, type = 'normal'){
     clearTimeout(botTimeout);
+
+    const xpText = document.getElementById('xp-text');
+    const xpBubble = document.getElementById('xp-speech-bubble');
+
     xpText.innerText = message;
+
+    if (type === 'error'){
+        xpBubble.classList.add('error-mode');
+    } else {
+        xpBubble.classList.remove('error-mode');
+    }
     xpBubble.classList.add('active');
 
     xpTv.style.animation = 'none';
@@ -39,8 +49,23 @@ function xpSpeak(message, duration = 4000){
 
     botTimeout = setTimeout(() => {
         xpBubble.classList.remove('active');
+        setTimeout(() => xpBubble.classList.remove('error-mode'), 300);
         xpTv.style.animation = 'tvBounce 3s ease-in-out infinite';
     }, duration);
+}
+
+function xpLocationError(){
+    let msgs = chatter.locating_error;
+    if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
+    let msg = msgs[Math.floor(Math.random() * msgs.length)];
+    xpSpeak(msg);
+}
+
+function xpOcean(){
+    let msgs = chatter.ocean_error;
+    if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
+    let msg = msgs[Math.floor(Math.random() * msgs.length)];
+    xpSpeak(msg);
 }
 
 occasionSelect.addEventListener('change', (e) => {

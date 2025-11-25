@@ -1,2 +1,14 @@
 -> Better Error Handling  and a seperate UI Box for error
 -> Better XP design
+-> Make logo
+-> Different currency input
+
+
+
+-----FIXES AND TODAY TASK-----
+-> The map search bar should also locate stuff like the click feature
+-> Error locating should also stop from planning the expedition.
+-> Remove the default place of paris and leave nothing there.
+-> Add feature of different currency and also automatic currency value estimation
+-> Add error handling on the xp bot itself
+-> Add feature where on selecting ocean the xp bot will make a comment on it.
