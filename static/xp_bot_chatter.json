@@ -95,24 +95,52 @@
     "A wild bug appeared! It blocked your request.",
     "The satellite refused to answer my call."
   ],
-  "locating_error": [
-    "I can't plan a trip to the void. Pick a real place.",
-    "Are we going to Narnia? My GPS doesn't show that.",
-    "404: Location not found. Try Earth.",
-    "That's in the middle of nowhere. Literally.",
-    "I can't find that. Did you invent it?",
-    "Please select a destination that actually exists."
-  ],
-  "ocean_error": [
-    "I can't swim. Pick land.",
-    "Unless you are a mermaid, that's a bad idea.",
-    "Destination: The middle of nowhere. Try again.",
-    "I don't plan trips for fish.",
-    "That is 100% water. 0% Hotel.",
-    "My circuits are not waterproof.",
-    "Do you have a submarine? No? Then click land.",
-    "Error: Too much moisture detected."
-  ],
+  "input_errors": {
+    "locating_error": [
+      "I can't plan a trip to the void. Pick a real place.",
+      "Are we going to Narnia? My GPS doesn't show that.",
+      "404: Location not found. Try Earth.",
+      "That's in the middle of nowhere. Literally.",
+      "I can't find that. Did you invent it?",
+      "Please select a destination that actually exists."
+    ],
+    "ocean_error": [
+      "I can't swim. Pick land.",
+      "Unless you are a mermaid, that's a bad idea.",
+      "Destination: The middle of nowhere. Try again.",
+      "I don't plan trips for fish.",
+      "That is 100% water. 0% Hotel.",
+      "My circuits are not waterproof.",
+      "Do you have a submarine? No? Then click land.",
+      "Error: Too much moisture detected."
+    ],
+    "missing_field": [
+      "I'm not a mind reader. Fill in the blanks.",
+      "I need data, human. Don't leave boxes empty.",
+      "You missed a spot. Or three.",
+      "I can't plan a trip with invisible text.",
+      "Help me help you. Fill out the form."
+    ],
+    "past_date": [
+      "Time travel module not installed. Pick a future date.",
+      "Living in the past? Cute, but no.",
+      "Unless you have a DeLorean, that date won't work.",
+      "I can't book hotels in 2020. Try again.",
+      "My calendar only goes forward, not backward."
+    ],
+    "invalid_range": [
+      "End date before start date? That's not how time works.",
+      "You can't come back before you leave.",
+      "Physics says no. Fix the dates.",
+      "Are you testing me? Fix the date range."
+    ],
+    "budget": [
+      "I can't book hotels with hopes and dreams. Enter a budget.",
+      "Nothing in life is free. Especially vacations.",
+      "Wallet check! You forgot the money part.",
+      "Please tell me how much I can spend."
+    ]
+  },
   "occasions": {
     "Adventure": [
       "Pack a helmet. Seriously.",

@@ -122,14 +122,49 @@ async function generateItinerary(){
         return;
     }
 
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const occasion = document.getElementById('occasion').value;
-    const budget = document.getElementById('budget').value;
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const occasionInput = document.getElementById('occasion');
+    const budgetInput = document.getElementById('budget');
 
-    // ---- REPLACE WITH BETTER UI ----
-    if(!startDate || !endDate || !budget) {
-        alert("Please fill in all fields!");
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+    const occasion = occasionInput.value;
+    const budget = budgetInput.value;
+
+    [startDateInput, endDateInput, budgetInput].forEach(el => el.classList.remove('input-error')); //RESET AFTER ERROR
+    let hasError = false;
+
+    //Missing field check
+    if (!startDate) { startDateInput.classList.add('input-error'); hasError = true; }
+    if (!endDate) { endDateInput.classList.add('input-error'); hasError = true; }
+    if (!budget) { budgetInput.classList.add('input-error'); hasError = true; }
+
+    if (hasError) {
+        if (startDate && endDate && !budget) xpFormError('budget');
+        else xpFormError('missing_field');
+        return;
+    }
+
+    //Check Error in Calendar
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (start < today){
+        startDateInput.classList.add('input-error');
+        xpFormError('past_date');
+        return;
+    }
+    if (end < start){
+        endDateInput.classList.add('input-error');
+        xpFormError('invalid_range');
+        return;
+    }
+    if (budget <= 0) {
+        budgetInput.classList.add('input-error');
+        xpFormError('budget');
         return;
     }
 
@@ -188,6 +223,17 @@ async function generateItinerary(){
         resetForm();
     }
 }
+
+// Event listeners to remove error class when user types
+document.addEventListener('DOMContentLoaded', () => {
+    const inputs = ['startDate', 'endDate', 'budget'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', function() {
+            this.classList.remove('input-error');
+        });
+    });
+});
+
 
 function resetForm() {
     document.getElementById('result-state').classList.add('hidden');

@@ -10,6 +10,7 @@ let chatter = {
     loading: ["Thinking..."],
     success: ["Done!"],
     error: ["Error!"],
+    input_errors: {},
     occasions: {}
 } //Default data if could not retreive json
 
@@ -55,17 +56,30 @@ function xpSpeak(message, duration = 4000, type = 'normal'){
 }
 
 function xpLocationError(){
-    let msgs = chatter.locating_error;
+    let msgs = chatter.input_errors.locating_error;
     if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
     let msg = msgs[Math.floor(Math.random() * msgs.length)];
     xpSpeak(msg);
 }
 
 function xpOcean(){
-    let msgs = chatter.ocean_error;
+    let msgs = chatter.input_errors.ocean_error;
     if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
     let msg = msgs[Math.floor(Math.random() * msgs.length)];
     xpSpeak(msg);
+}
+
+function xpFormError(input_error_type = "missing_field"){
+    if (chatter.input_errors[input_error_type]){
+        const msgs = chatter.input_errors[input_error_type];
+        const msg = msgs[Math.floor(Math.random() * msgs.length)];
+        xpSpeak(msg, 5000, 'error');
+    }
+    else {
+        const msgs = chatter.input_errors.missing_field;
+        const msg = msgs[Math.floor(Math.random() * msgs.length)];
+        xpSpeak(msg, 5000, 'error');
+    }
 }
 
 occasionSelect.addEventListener('change', (e) => {
