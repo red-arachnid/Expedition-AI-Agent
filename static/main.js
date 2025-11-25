@@ -3,6 +3,40 @@ const map = L.map('map').setView([48.8566, 2.3522], 13); //Default coords for Pa
 let currentMarker = L.marker([48.8566, 2.3522]).addTo(map);
 let isValidLocation = true;
 
+let exchangeRates = { USD: 1 }; //Default USD
+let currentCurrency = 'USD';
+
+async function fetchRates(){
+    try {
+        const response = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await response.json();
+        exchangeRates = (data && data.rates) ? data.rates : exchangeRates;
+    } catch (e) {
+        console.warn("Could not fetch live rates, using approximations.");
+        // Approximate rates if failed
+        exchangeRates = { USD: 1, INR: 83.5, EUR: 0.92, JPY: 150.2, GBP: 0.79, CHF: 0.88 };
+    }
+}
+fetchRates();
+
+document.getElementById('currency').addEventListener('change', function(e) {
+    const newCurrency = e.target.value;
+    const budgetInput = document.getElementById('budget');
+    const val = parseFloat(budgetInput.value);
+
+    if (!isNaN(val)){
+        const amountInUSD = val / exchangeRates[currentCurrency];
+        const convertedAmount = amountInUSD * exchangeRates[newCurrency];
+
+        if (newCurrency === 'JPY') {
+            budgetInput.value = Math.round(convertedAmount);
+        } else {
+            budgetInput.value = convertedAmount.toFixed(2);
+        }
+    }
+    currentCurrency = newCurrency;
+});
+
 // PIN MOVE ON CLICK LOGIC
 async function selectLocation(lat, lng){
     toggleFocusMode(false);
@@ -131,6 +165,7 @@ async function generateItinerary(){
     const endDate = endDateInput.value;
     const occasion = occasionInput.value;
     const budget = budgetInput.value;
+    const currency = document.getElementById('currency').value;
 
     [startDateInput, endDateInput, budgetInput].forEach(el => el.classList.remove('input-error')); //RESET AFTER ERROR
     let hasError = false;
@@ -180,7 +215,7 @@ async function generateItinerary(){
         const response = await fetch('/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ location, startDate, endDate, occasion, budget })
+            body: JSON.stringify({ location, startDate, endDate, occasion, budget, currency })
         });
         const data = await response.json();
 

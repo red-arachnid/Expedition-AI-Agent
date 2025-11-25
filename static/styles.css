@@ -12,18 +12,33 @@ body { font-family: 'Outfit', sans-serif; }
     border-left: 1px solid rgba(0,0,0,0.1);
 }
 
-/* Yellow Warning State for Location Box */
+select#currency {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: none; 
+    text-align: center;
+}
+select#currency:hover {
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
 .location-error {
-    background-color: #fef9c3 !important;
-    border-color: #ca8a04 !important;    
+    background-color: #fef2f2 !important;
+    border-color: #ef4444 !important;
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 .location-error label {
-    color: #ca8a04 !important;
+    color: #ef4444 !important;
 }
 
 .location-error #selected-location {
-    color: #854d0e !important;
+    color: #991b1b !important;
+}
+
+.location-error svg {
+    color: #ef4444 !important;
 }
 
 .input-error {

@@ -33,7 +33,7 @@ def generate_itinerary():
         prompt = (
             f"Act as an expert travel agent. Plan a trip to {data['location']} "
             f"from {data['startDate']} to {data['endDate']}. "
-            f"Vibe: {data['occasion']}. Budget: ${data['budget']}. "
+            f"Vibe: {data['occasion']}. Budget: {data['budget']}{data.get('currency', 'USD')} "
             f"\nReturn a valid JSON object with exactly these three keys:"
             f"\n- 'hotels': A list of 3 objects, each with 'name', 'price' (approx), and 'description'."
             f"\n- 'pois': A list of 5 objects, each with 'name' and 'description' (Must-visit places)."
