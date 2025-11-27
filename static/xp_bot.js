@@ -1,8 +1,10 @@
 const xpBubble = document.getElementById('xp-speech-bubble');
 const xpText = document.getElementById('xp-text');
-const xpTv = document.querySelector('.xp-tv');
+const xPBotWrapper = document.querySelector('.xp-drone-wrapper');
+const xpFacePlate = document.querySelector('.xp-face-plate');
 const occasionSelect = document.getElementById('occasion');
 let botTimeout;
+let eyeTimeout;
 let randomChatterInterval;
 
 let chatter = {
@@ -29,6 +31,18 @@ async function loadChatter(){
 }
 loadChatter();
 
+function setEyeState(state){
+    xpFacePlate.classList.remove('error-mode', 'confused-mode', 'happy-mode', 'thinking-mode');
+    clearTimeout(eyeTimeout);
+
+    if (state !== 'normal'){
+        xpFacePlate.classList.add(`${state}-mode`);
+    }
+    if (state === 'confused') {
+        eyeTimeout = setTimeout(() => setEyeState('normal'), 1500);
+    }
+}
+
 function xpSpeak(message, duration = 4000, type = 'normal'){
     clearTimeout(botTimeout);
 
@@ -39,19 +53,21 @@ function xpSpeak(message, duration = 4000, type = 'normal'){
 
     if (type === 'error'){
         xpBubble.classList.add('error-mode');
+        setEyeState('error');
+        eyeTimeout = setTimeout(() => setEyeState('normal'), duration);
     } else {
         xpBubble.classList.remove('error-mode');
     }
     xpBubble.classList.add('active');
 
-    xpTv.style.animation = 'none';
-    xpTv.offsetHeight;
-    xpTv.style.animation = 'tvBounce 0.5s ease-in-out';
+    xPBotWrapper.style.animation = 'none';
+    xPBotWrapper.offsetHeight;
+    xPBotWrapper.style.animation = 'droneFloat 0.5s ease-in-out';
 
     botTimeout = setTimeout(() => {
         xpBubble.classList.remove('active');
         setTimeout(() => xpBubble.classList.remove('error-mode'), 300);
-        xpTv.style.animation = 'tvBounce 3s ease-in-out infinite';
+        xPBotWrapper.style.animation = 'droneFloat 3s ease-in-out infinite';
     }, duration);
 }
 
@@ -59,14 +75,14 @@ function xpLocationError(){
     let msgs = chatter.input_errors.locating_error;
     if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
     let msg = msgs[Math.floor(Math.random() * msgs.length)];
-    xpSpeak(msg);
+    xpSpeak(msg, 4000, 'error');
 }
 
 function xpOcean(){
     let msgs = chatter.input_errors.ocean_error;
     if (!msgs || msgs.length === 0) msgs = ["Where are you going?"];
     let msg = msgs[Math.floor(Math.random() * msgs.length)];
-    xpSpeak(msg);
+    xpSpeak(msg, 4000, 'error');
 }
 
 function xpFormError(input_error_type = "missing_field"){
@@ -88,38 +104,40 @@ occasionSelect.addEventListener('change', (e) => {
 
     if (key && chatter.occasions[key]){
         const msgs = chatter.occasions[key];
-        const msg = msgs[Math.floor(Math.random() * msgs.length)];
-        xpSpeak(msg);
+        xpSpeak(msgs[Math.floor(Math.random() * msgs.length)]);
+        setEyeState('happy');
+        eyeTimeout = setTimeout(() => setEyeState('normal'), 2000);
     }
 });
 
 function startLoadingChatter() {
-    let msgs = chatter.loading;
-    if (!msgs || msgs.length === 0) msgs = ["Thinking..."];
+    setEyeState('thinking');
+    let msgs = chatter.loading || ["Thinking..."];
 
-    let msg = msgs[Math.floor(Math.random() * msgs.length)];
-    xpSpeak(msg);
+    xpSpeak(msgs[Math.floor(Math.random() * msgs.length)]);
 
     loadingInterval = setInterval(() => {
-        let msg = msgs[Math.floor(Math.random() * msgs.length)];
-        xpSpeak(msg);
+        xpSpeak(msgs[Math.floor(Math.random() * msgs.length)]);
     }, 3000);
 }
 
 function stopLoadingChatter(isSuccess) {
     clearInterval(loadingInterval);
     if(isSuccess) {
+        setEyeState('happy');
         const msgs = chatter.success;
-        const msg = msgs[Math.floor(Math.random() * msgs.length)];
-        xpSpeak(msg, 8000); 
+        xpSpeak(msgs[Math.floor(Math.random() * msgs.length)], 8000); 
+        eyeTimeout = setTimeout(() => setEyeState('normal'), 6000);
     } else {
+        setEyeState('error');
         const msgs = chatter.error;
-        const msg = msgs[Math.floor(Math.random() * msgs.length)];
-        xpSpeak(msg);
+        xpSpeak(msgs[Math.floor(Math.random() * msgs.length)]);
+        xpSpeak(msgs[Math.floor(Math.random() * msgs.length)], 5000, 'error');
     }
 }
 
 function botClick(){
+    setEyeState('confused');
     const msg = chatter.clicks[Math.floor(Math.random() * chatter.clicks.length)];
     xpSpeak(msg);
 }
