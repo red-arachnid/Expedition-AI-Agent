@@ -1,17 +1,28 @@
 body { font-family: 'Outfit', sans-serif; }
-/* Scrollbar Style */
+
+/* Custom Scrollbar (Webkit browsers) */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-#map { height: 100%; width: 100%; z-index: 0; }
+/** --- MAP & LAYOUT --- **/
+#map { 
+    height: 100%; 
+    width: 100%; 
+    z-index: 0; 
+}
+
+/* Glassmorphism Effect for Sidebar */
 .glass-panel {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-left: 1px solid rgba(0,0,0,0.1);
 }
 
+
+/** --- FORM ELEMENTS --- **/
+/* Custom styling for the currency dropdown to sit cleanly inside the input */
 select#currency {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -23,30 +34,9 @@ select#currency:hover {
     background-color: rgba(37, 99, 235, 0.1);
 }
 
-.location-error {
-    background-color: #fef2f2 !important;
-    border-color: #ef4444 !important;
-    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-}
 
-.location-error label {
-    color: #ef4444 !important;
-}
-
-.location-error #selected-location {
-    color: #991b1b !important;
-}
-
-.location-error svg {
-    color: #ef4444 !important;
-}
-
-.input-error {
-    border-color: #ef4444 !important;
-    background-color: #fef2f2 !important;
-    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-}
-
+/** --- ERROR STATES & ANIMATIONS --- **/
+/* Error Shake Animation Keyframes */
 @keyframes shake {
     10%, 90% { transform: translate3d(-1px, 0, 0); }
     20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -54,12 +44,30 @@ select#currency:hover {
     40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* LOADING CIRCLE */
+/* Red styling for invalid location box */
+.location-error {
+    background-color: #fef2f2 !important;
+    border-color: #ef4444 !important;
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+.location-error label { color: #ef4444 !important; }
+.location-error #selected-location { color: #991b1b !important; }
+.location-error svg { color: #ef4444 !important; }
+
+/* Red border for invalid inputs */
+.input-error {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+
+/** --- LOADING SPINNER --- **/
 .spinner {
     width: 50px;
     height: 50px;
     border: 4px solid #e5e7eb;
-    border-top: 4px solid #2563eb;
+    border-top: 4px solid #2563eb; /* Blue spinner top */
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto;
@@ -69,7 +77,9 @@ select#currency:hover {
     100% { transform: rotate(360deg); }
 }
 
-/* Popup Style */
+
+/** --- MAP POPUP OVERRIDES --- **/
+/* Removes default Leaflet padding to allow full-width images */
 .custom-map-popup .leaflet-popup-content-wrapper {
     padding: 0 !important;
     overflow: hidden;
@@ -83,32 +93,39 @@ select#currency:hover {
     background: white;
 }
 
-/* XP BOT STYLE */
+
+/** --- XP BOT CHARACTER --- **/
+/* Positioning container */
 #xp-bot-container {
     position: absolute;
     bottom: 50px;
     right: 24px;
-    z-index: 999;
+    z-index: 999; /* Above map */
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    pointer-events: none;
+    pointer-events: none; /* Allows clicks to pass through empty space */
 }
 
+/* 1. Wrapper handles the floating hover animation */
 .xp-drone-wrapper {
     position: relative;
     width: 80px;
     height: 80px;
     cursor: pointer;
-    pointer-events: auto;
+    pointer-events: auto; /* Re-enable clicks on the bot itself */
     animation: droneFloat 3s ease-in-out infinite;
     transition: transform 0.2s ease;
 }
-
 .xp-drone-wrapper:hover {
     transform: scale(1.05) translateY(-2px);
 }
+@keyframes droneFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
 
+/* 2. Main Body (Blue Sphere) */
 .xp-drone-body {
     width: 100%;
     height: 100%;
@@ -125,10 +142,29 @@ select#currency:hover {
     justify-content: center;
 }
 
+/* 3. Ears/Antennae */
+.xp-drone-ear {
+    position: absolute;
+    top: -10px;
+    width: 20px;
+    height: 35px;
+    background: #1f2937;
+    border-radius: 10px;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+.xp-drone-ear.left { left: 0; transform: rotate(-30deg); }
+.xp-drone-ear.right {  right: 0; transform: rotate(30deg); }
+
+/* Ear wiggle on hover */
+.xp-drone-wrapper:hover .xp-drone-ear.left { transform: rotate(-45deg); }
+.xp-drone-wrapper:hover .xp-drone-ear.right { transform: rotate(45deg); }
+
+/* 4. Face Plate (Screen) */
 .xp-face-plate {
     width: 70%;
     height: 45%;
-    background: #1f2937;
+    background: #1f2937; /* Dark gray screen */
     border-radius: 40px;
     display: flex;
     align-items: center;
@@ -138,6 +174,26 @@ select#currency:hover {
     border: 1px solid #374151;
 }
 
+/* 5. Eyes */
+.xp-eye {
+    width: 18px;
+    height: 18px;
+    background: #06b6d4; 
+    border-radius: 50%;
+    box-shadow: 
+        0 0 10px #22d3ee, 
+        inset 0 0 5px rgba(255,255,255,0.8); 
+    animation: blink 4s infinite;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+@keyframes blink {
+    0%, 48%, 52%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.1); }
+}
+
+
+/** --- BOT EMOTIONAL STATES --- *  */
+/* Error Mode: Red, pulsing eyes */
 .xp-face-plate.error-mode .xp-eye {
     background: transparent;      
     border: 3px solid #ef4444;
@@ -158,32 +214,31 @@ select#currency:hover {
     to { opacity: 1; box-shadow: 0 0 15px #ef4444; }
 }
 
+/* Confused Mode: One eye small, one eye big */
 .xp-face-plate.confused-mode .xp-eye {
     background: #2b71e1;
     box-shadow: none;
     animation: none;
 }
 .xp-face-plate.confused-mode .xp-eye.left {
-    height: 8px;
-    width: 8px;
-    transform: translateY(2px);
+    height: 8px; width: 8px; transform: translateY(2px);
 }
 .xp-face-plate.confused-mode .xp-eye.right {
-    height: 15px;
-    width: 15px;
-    transform: scale(1.1);
+    height: 8px; width: 8px; transform: translateY(2px);
 }
 
+/* Happy Mode: Eyes become arcs (inverted semi-circles) */
 .xp-face-plate.happy-mode .xp-eye {
     background: #22d3ee;
     height: 12px;
     width: 20px;
-    border-radius: 20px 20px 0 0;
+    border-radius: 20px 20px 0 0; /* Top half rounded */
     transform: translateY(2px);
     box-shadow: 0 -4px 8px rgba(34, 211, 238, 0.6);
     animation: none;
 }
 
+/* Thinking Mode: Eyes scan left and right */
 .xp-face-plate.thinking-mode .xp-eye {
     animation: scanLook 1.2s infinite ease-in-out alternate;
     height: 10px;
@@ -194,86 +249,44 @@ select#currency:hover {
 }
 
 
-.xp-eye {
-    width: 18px;
-    height: 18px;
-    background: #06b6d4; 
-    border-radius: 50%;
-    box-shadow: 
-        0 0 10px #22d3ee, 
-        inset 0 0 5px rgba(255,255,255,0.8); 
-    animation: blink 4s infinite;
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-}
-
-.xp-drone-ear {
-    position: absolute;
-    top: -10px;
-    width: 20px;
-    height: 35px;
-    background: #1f2937;
-    border-radius: 10px;
-    z-index: 1;
-    transition: transform 0.3s ease;
-}
-
-.xp-drone-ear.left {
-    left: 0;
-    transform: rotate(-30deg);
-}
-
-.xp-drone-ear.right {
-    right: 0;
-    transform: rotate(30deg);
-}
-
-@keyframes droneFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-}
-
-@keyframes blink {
-    0%, 48%, 52%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.1); }
-}
-
-.xp-drone-wrapper:hover .xp-drone-ear.left { transform: rotate(-45deg); }
-.xp-drone-wrapper:hover .xp-drone-ear.right { transform: rotate(45deg); }
-
+/** --- SPEECH BUBBLE --- **/
 #xp-speech-bubble {
     background: white;
     padding: 12px 16px;
     border-radius: 12px;
-    border-bottom-right-radius: 2px;
+    border-bottom-right-radius: 2px; /* Point towards bot */
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     margin-bottom: 10px;
     max-width: 220px;
+
+    /* Animation initial state: Hidden and slightly lower */
     opacity: 0;
     transform: translateY(10px) scale(0.95);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
     pointer-events: auto;
     border: 2px solid #e5e7eb;
 }
 
+/* Speech Bubble Error Variant */
 #xp-speech-bubble.error-mode {
     background-color: #ef4444;
     border-color: #991b1b;
 }
-
 #xp-speech-bubble.error-mode #xp-text {
     color: white !important;
+}
+
+/* Active State (Visible) */
+#xp-speech-bubble.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 
 @keyframes tvBounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-4px); }
 }
-
-#xp-speech-bubble.active {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-
 @keyframes floatBubble {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }

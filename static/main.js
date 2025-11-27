@@ -1,11 +1,20 @@
-// MAP INITIALIZE
-const map = L.map('map').setView([48.8566, 2.3522], 13); //Default coords for Paris
+/**
+ * MAIN.JS
+ * Handles Map initialization, Location selection, Currency conversion, 
+ * and communicating with the Flask backend.
+ */
+
+//? --- MAP INITIALIZATION ---
+// Using Leaflet.js centered on Paris by default
+const map = L.map('map').setView([48.8566, 2.3522], 13);
 let currentMarker = L.marker([48.8566, 2.3522]).addTo(map);
 let isValidLocation = true;
 
-let exchangeRates = { USD: 1 }; //Default USD
+//? --- CURRENCY LOGIC ---
+let exchangeRates = { USD: 1 }; //Default fallback
 let currentCurrency = 'USD';
 
+// Fetch live rates on load
 async function fetchRates(){
     try {
         const response = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -13,23 +22,25 @@ async function fetchRates(){
         exchangeRates = (data && data.rates) ? data.rates : exchangeRates;
     } catch (e) {
         console.warn("Could not fetch live rates, using approximations.");
-        // Approximate rates if failed
+        // Fallback approximation if API fails
         exchangeRates = { USD: 1, INR: 83.5, EUR: 0.92, JPY: 150.2, GBP: 0.79, CHF: 0.88 };
     }
 }
 fetchRates();
 
+// Handle currency dropdown changes
 document.getElementById('currency').addEventListener('change', function(e) {
     const newCurrency = e.target.value;
     const budgetInput = document.getElementById('budget');
     const val = parseFloat(budgetInput.value);
 
+    // Convert existing value to new currency
     if (!isNaN(val)){
         const amountInUSD = val / exchangeRates[currentCurrency];
         const convertedAmount = amountInUSD * exchangeRates[newCurrency];
 
         if (newCurrency === 'JPY') {
-            budgetInput.value = Math.round(convertedAmount);
+            budgetInput.value = Math.round(convertedAmount); // Yen usually has no decimals
         } else {
             budgetInput.value = convertedAmount.toFixed(2);
         }
@@ -37,27 +48,37 @@ document.getElementById('currency').addEventListener('change', function(e) {
     currentCurrency = newCurrency;
 });
 
-// PIN MOVE ON CLICK LOGIC
+//? --- LOCATION LOGIC ---
+
+/**
+ * Handles logic when user clicks on map or searches.
+ * 1. Moves marker
+ * 2. Fetches location name (Reverse Geocoding)
+ * 3. Updates UI with location image and name
+ */
 async function selectLocation(lat, lng){
-    toggleFocusMode(false);
+    toggleFocusMode(false); // Collapse sidebar
 
     currentMarker.setLatLng([lat, lng]);
     currentMarker.closePopup();
     currentMarker.unbindPopup();
+
+    // UI Loading state
     document.getElementById('selected-location').innerText = "Locating...";
     document.getElementById('location-box').classList.remove('location-error');
 
     try{
+        // Call backend to get name & image
         const response = await fetch(`/get_location_name?lat=${lat}&lon=${lng}`);
         const data = await response.json();
 
         if (data && data.display_name){
+            // Prevent selecting Oceans/Wilderness
             if (data.is_ocean) {
                 isValidLocation = false;
                 document.getElementById('location-box').classList.add('location-error');
                 document.getElementById('selected-location').innerText = data.display_name || "Ocean / Wilderness";
-                xpOcean();
-
+                xpOcean(); // Trigger Bot Error
                 currentMarker.bindPopup(`<b>⚠️ ${data.display_name}</b><br>Not a valid destination.`).openPopup();
                 return;
             }
@@ -65,17 +86,16 @@ async function selectLocation(lat, lng){
             isValidLocation = true;
             document.getElementById('location-box').classList.remove('location-error');
 
+            // Format address
             const address = data.address;
             let locationName = address.city || address.town || address.village || address.hamlet || data.display_name.split(',')[0];
-
             let fullName = locationName;
-            if (address.country){
-                fullName += `, ${address.country}`;
-            }
-            document.getElementById('selected-location').innerText = fullName;
+            if (address.country) fullName += `, ${address.country}`;
 
+            document.getElementById('selected-location').innerText = fullName;
             xpSpeak(`Oh, ${locationName}! Nice choice. Let's get planning.`);
 
+            // Create Pop-up with Wikipedia Image
             if (data.image){
                 const popupContent = `
                     <div class="font-sans">
@@ -103,9 +123,7 @@ async function selectLocation(lat, lng){
                 }).openPopup();
             }
 
-        } else {
-            throw new Error("Location not identified");
-        }
+        } else throw new Error("Location not identified");
     } catch (e) {
         isValidLocation = false;
         document.getElementById('selected-location').innerText = "Unknown Location";
@@ -115,18 +133,20 @@ async function selectLocation(lat, lng){
     }
 }
 
+// Map Click Listener
 map.on('click', function(e){
     const {lat, lng} = e.latlng;
     selectLocation(lat, lng);
 });
 
+// Tile Layer (Map visuals)
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 20
 }).addTo(map);
 
-// MAP SEARCH
+//? --- SEARCH BAR LOGIC ---
 async function searchMap(){
     const query = document.getElementById('map-search').value;
     if (!query) return;
@@ -146,10 +166,11 @@ async function searchMap(){
     }
 }
 
-// Send to backend
+//? --- GENERATION LOGIC ---
 async function generateItinerary(){
     const location = document.getElementById('selected-location').innerText;
 
+    // Validation: Location
     if (!isValidLocation || location === "Unknown Location" || location === "Locating..."){
         xpLocationError();
         document.getElementById('location-box').classList.add('location-error');
@@ -167,10 +188,11 @@ async function generateItinerary(){
     const budget = budgetInput.value;
     const currency = document.getElementById('currency').value;
 
+    // Remove previous error styles
     [startDateInput, endDateInput, budgetInput].forEach(el => el.classList.remove('input-error')); //RESET AFTER ERROR
     let hasError = false;
 
-    //Missing field check
+    // Validation: Missing Fields
     if (!startDate) { startDateInput.classList.add('input-error'); hasError = true; }
     if (!endDate) { endDateInput.classList.add('input-error'); hasError = true; }
     if (!budget) { budgetInput.classList.add('input-error'); hasError = true; }
@@ -181,7 +203,7 @@ async function generateItinerary(){
         return;
     }
 
-    //Check Error in Calendar
+    // Validation: Date Logic
     const start = new Date(startDate);
     const end = new Date(endDate);
     const today = new Date();
@@ -203,15 +225,17 @@ async function generateItinerary(){
         return;
     }
 
-    // LOADING UI SWITCH
+    //? --- START PROCESSING ---
+    // Switch UI to loading state
     document.getElementById('form-container').classList.add('hidden');
     document.getElementById('loading-state').classList.remove('hidden');
     document.getElementById('loading-loc').innerText = location;
 
-    startProgress();
-    startLoadingChatter();
+    startProgress(); // Start fake progress bar
+    startLoadingChatter(); // Start Bot dialogue
 
     try{
+        // Send data to Flask
         const response = await fetch('/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -222,8 +246,9 @@ async function generateItinerary(){
         finishProgress();
 
         if (data.success){
-            //setTimeout for adding delays for the loading bar to show properly
             stopLoadingChatter(true);
+
+            // Render Results (Hotels & POIs)
             setTimeout(() => {
                 document.getElementById('hotels-container').innerHTML = data.hotels.map(hotel => `
                     <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition">
@@ -245,13 +270,12 @@ async function generateItinerary(){
                     </div>
                 `).join('');
 
+                // Show Results Screen
                 document.getElementById('loading-state').classList.add('hidden');
                 document.getElementById('result-state').classList.remove('hidden');
                 document.getElementById('download-link').href = data.pdf_url;
             }, 600);
-        } else {
-            throw new Error(data.error);
-        }
+        } else throw new Error(data.error);
     } catch (e) {
         stopLoadingChatter(false);
         alert("Error generating itinerary: " + e.message);
@@ -259,7 +283,7 @@ async function generateItinerary(){
     }
 }
 
-// Event listeners to remove error class when user types
+// Helper: Remove error class when user types
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = ['startDate', 'endDate', 'budget'];
     inputs.forEach(id => {
@@ -269,41 +293,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
+// Helper: Reset Form
 function resetForm() {
     document.getElementById('result-state').classList.add('hidden');
     document.getElementById('loading-state').classList.add('hidden');
     document.getElementById('form-container').classList.remove('hidden');
 }
 
+// Helper: Sidebar Expansion/Collapse
 function toggleFocusMode(isActive){
     const sidebar = document.getElementById('sidebar');
     const dimmer = document.getElementById('map-dimmer');
 
     if (isActive){
-        //Expand Sidebar
         sidebar.classList.remove('w-[450px]');
         sidebar.classList.add('w-[600px]');
-
-        // Show Dimmer & Enable Clicks on it
         dimmer.classList.remove('opacity-0', 'pointer-events-none');
         dimmer.classList.add('opacity-100', 'pointer-events-auto');
-
         currentMarker.closePopup();
     } else {
-        // Shrink sidebar
         sidebar.classList.remove('w-[600px]');
         sidebar.classList.add('w-[450px]');
-
-        // Hide Dimmer & Disable Clicks on it
         dimmer.classList.remove('opacity-100', 'pointer-events-auto');
         dimmer.classList.add('opacity-0', 'pointer-events-none');
-
         currentMarker.openPopup();
     }
 }
 
-// Progress bar while searching
+// Helper: Fake Progress Bar Logic
 let progressInterval;
 function startProgress(){
     let width = 0;
@@ -316,16 +333,17 @@ function startProgress(){
     clearInterval(progressInterval);
     progressInterval = setInterval(() => {
         if (width >= 95){
-            //Stall at 95% for fake illusion
+            // Stall at 95% until backend responds
         } else {
-            const increment = (width < 50) ? 2 : 
-                                (width < 80) ? 1 : 0.5; 
+            // Slow down as we get closer to 100
+            const increment = (width < 50) ? 2 : (width < 80) ? 1 : 0.5; 
             width += increment;
             progressBar.style.width = width + '%';
             progressText.innerText = Math.floor(width) + '%';
         }
     }, 200);
 }
+
 function finishProgress(){
     clearInterval(progressInterval);
     const progressBar = document.getElementById("progress-bar");
