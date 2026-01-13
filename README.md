@@ -47,7 +47,7 @@ Expedition AI is a full-stack web application that serves as an intelligent trav
     GEMINI_API_KEY=your_gemini_key_here
     GEOAPIFY_API_KEY=your_geoapify_key_here
 
-3. **Install dependencies: (Note: Ensure you have flask, google-generativeai, requests, python-dotenv, and fpdf installed.)
+3. **Install dependencies: (Note: Ensure you have flask, google-generativeai, requests, python-dotenv, and fpdf installed.)**
     ```bash
     pip install flask google-generativeai requests python-dotenv fpdf
 
