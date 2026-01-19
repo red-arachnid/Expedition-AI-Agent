@@ -39,7 +39,7 @@ Expedition AI is a full-stack web application that serves as an intelligent trav
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/red-arachnid/Expedition-AI-Agent.git] {https://github.com/red-arachnid/Expedition-AI-Agent.git}
+   git clone https://github.com/red-arachnid/Expedition-AI-Agent.git
    cd Expedition-AI-Agent
 
 2. **Set up environment variables: Create a .env file in the root directory:**
